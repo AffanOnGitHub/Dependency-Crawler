@@ -4,7 +4,6 @@ Created on Sat Dec  8 07:32:14 2018
 
 @author: AffanShemle
 """
-#import lib 
 import xml.etree.ElementTree as ET
 import re
 import os
@@ -72,8 +71,8 @@ def get_all_query_source_tables(query_list): # a query is used in the source com
         print('Infinite Loop encountered')
     return table_ls
 
-def wrangle_query(query): #some cleaning is remaining e.g single line comment and WITH clause query
-    query = '  ' + query + '  ' + '\n' #add some space in the beginning to fix the infinte loop if a comment line is the first line of the query and append a space to avoid handling the string out of index error, add a new line to fix the issue of infinite loop if there is a single line comment in the end
+def wrangle_query(query): 
+    query = '  ' + query + '  ' + '\n' #add some space in the beginning to fix the infinte loop if a comment line is the first line of the query and append a space to avoid handling the string out of index error, add a new line to prevent infinite loop if there is a single line comment in the end of the source query
     try:
         while query.find('/*',0) != -1:
             comnt_start = query.find('/*',0)
@@ -210,30 +209,7 @@ def get_dest_table_and_its_pckg_name(directory_location,list_of_pakages): # Hand
             for acomponent in root.iter('component'):
                 access_mode = ''
                 
-                """if component.get('description') == 'Loads data into an ADO.NET-compliant database that uses a database table or view. Load data into a new or existing table. For example, use an ADO.NET provider for ODBC to load data into an ODBC destination.':
-                    for property in component.iter('property'):
-                        if property.get('name') == 'TableOrViewName' and property.text:
-                            dest_table = property.text
-                            dest_table_and_its_pckg_dic.update({dest_table:package})                
-
-                if component.get('description') == 'Writes data to a table in a SQL Server Compact database. Note: the SQL Server Compact provider is only available in a 32-bit version. On 64-bit computers, connect in 32-bit mode.':
-                    for property in component.iter('property'):
-                        if property.get('name') == 'Table Name' and property.text:
-                            dest_table = property.text
-                            dest_table_and_its_pckg_dic.update({dest_table:package})
-                
-                if component.get('description') == 'SQL Server Destination':
-                    for property in component.iter('property'):
-                        if property.get('name') == 'BulkInsertTableName' and property.text:
-                            dest_table = property.text
-                            dest_table_and_its_pckg_dic.update({dest_table:package})
-                
-                if component.get('description') == 'ODBC Destination':
-                    for property in component.iter('property'):
-                        if property.get('name') == 'TableName' and property.text:
-                            dest_table = property.text
-                            dest_table_and_its_pckg_dic.update({dest_table:package})"""
-                
+              
                 if acomponent.get('description') == 'OLE DB Destination':
                     
                     for aproperty in acomponent.iter('property'):
@@ -271,59 +247,28 @@ def get_dest_table_and_its_pckg_name(directory_location,list_of_pakages): # Hand
             print('Infinite Loop encountered')
     return dest_table_and_its_pckg_dic
 
-"""def start_scraping_packages(directory_location):
-    dc_of_pckg_source_tables = {}
-    dc_of_dest_table_pckg = {}
-    pckg_to_populate_atable = ''
-    dc_of_pckg_dependency = {}
-    ls_of_pckg_names = read_all_package_names(directory_location)
-    dc_of_pckg_source_tables = get_pkg_and_its_source_tables(directory_location,ls_of_pckg_names)
-    dc_of_dest_table_pckg = get_dest_table_and_its_pckg_name(directory_location,ls_of_pckg_names)
-    ls_of_dest_tables = list(dc_of_dest_table_pckg.keys())
-    for package, ls_of_tables in dc_of_pckg_source_tables.items():
-        for atable in ls_of_tables:
-            ls_of_tables[:] = [atable for atable in ls_of_tables if atable in ls_of_dest_tables]
-    for package, ls_of_tables in dc_of_pckg_source_tables.items():
-        if len(ls_of_tables) != 0:
-            for atable in ls_of_tables:
-                pckg_to_populate_atable = dc_of_dest_table_pckg[atable]
-                dc_of_pckg_dependency.update({package:pckg_to_populate_atable})
-        
-    return dc_of_pckg_dependency"""
-
-dc_of_pckg_source_tables = {}
-dc_of_dest_table_pckg = {}
-pckg_to_populate_atable = ''
-dc_of_pckg_dependency = {}
-ls_of_pckg_names = read_all_package_names('E:\Python\DataFiles\Billing\OST')
-#ls_of_pckg_names1 = read_all_package_names('E:\Python\DataFiles\OST_RnD')
-dml_part1 = "INSERT [dbo].[PACKAGE_DEPENDENCY] ([PACKAGE_ID], [DEPENDENT_PACKAGE_ID]) VALUES ((SELECT PACKAGE_ID FROM PACKAGE WHERE NAME ='"
-dml_part2 = "' AND STAGE='"
-dml_part3 = "'),(SELECT PACKAGE_ID FROM PACKAGE WHERE NAME ='"
-dml_part4 = "' AND STAGE='"
-dml_part5 = "'))"
-stage = 'MIL_REIN_OST'
-#dc_of_pckg_source_tables = get_pkg_and_its_source_tables('E:\Python\DataFiles\OST_RnD',ls_of_pckg_names1)
-dc_of_pckg_source_tables = get_pkg_and_its_source_tables('E:\Python\DataFiles\Billing\OST',ls_of_pckg_names)
-dc_of_dest_table_pckg = get_dest_table_and_its_pckg_name('E:\Python\DataFiles\Billing\OST',ls_of_pckg_names)
-ls_of_dest_tables = list(dc_of_dest_table_pckg.keys())
-for package, ls_of_tables in dc_of_pckg_source_tables.items():
-    for atable in ls_of_tables:
-        ls_of_tables[:] = [atable for atable in ls_of_tables if atable in ls_of_dest_tables]
-for package, ls_of_tables in dc_of_pckg_source_tables.items():
-    if len(ls_of_tables) != 0: # overwriting the dictionary key
-        for atable in ls_of_tables:
-            pckg_to_populate_atable = dc_of_dest_table_pckg[atable]
-            if package != pckg_to_populate_atable:
-                dml = dml_part1+pckg_to_populate_atable+dml_part2+stage+dml_part3+package+dml_part4+stage+dml_part5
-                print(dml)
-
-"""ls_of_pckg_names = read_all_package_names('E:\Python\DataFiles\PAS_OST')
-ls_of_pckg_names1 = read_all_package_names('E:\Python\DataFiles\OST_RnD')
-dc_of_pckg_source_tables = get_pkg_and_its_source_tables('E:\Python\DataFiles\OST_RnD',ls_of_pckg_names1)
-print(dc_of_pckg_source_tables)
-dc_of_dest_table_pckg = get_dest_table_and_its_pckg_name('E:\Python\DataFiles\PAS_OST',ls_of_pckg_names)
-ls_of_dest_tables = list(dc_of_dest_table_pckg.keys())
-for package, ls_of_tables in dc_of_pckg_source_tables.items():
-    ls_of_tables[:] = [atable for atable in ls_of_tables if atable in ls_of_dest_tables]
-print(dc_of_pckg_source_tables)"""  
+def get_dependency_dml(directory_location, stage):
+	dc_of_pckg_source_tables = {}
+	dc_of_dest_table_pckg = {}
+	pckg_to_populate_atable = ''
+	ls_of_pckg_names = read_all_package_names(directory_location)
+	dml_part1 = "INSERT [dbo].[PACKAGE_DEPENDENCY] ([PACKAGE_ID], [DEPENDENT_PACKAGE_ID]) VALUES ((SELECT PACKAGE_ID FROM PACKAGE WHERE NAME ='"
+	dml_part2 = "' AND STAGE='"
+	dml_part3 = "'),(SELECT PACKAGE_ID FROM PACKAGE WHERE NAME ='"
+	dml_part4 = "' AND STAGE='"
+	dml_part5 = "'))"
+	#stage = 'MIL_REIN_OST'
+	dc_of_pckg_source_tables = get_pkg_and_its_source_tables(directory_location,ls_of_pckg_names)
+	dc_of_dest_table_pckg = get_dest_table_and_its_pckg_name(directory_location,ls_of_pckg_names)
+	ls_of_dest_tables = list(dc_of_dest_table_pckg.keys())
+	for package, ls_of_tables in dc_of_pckg_source_tables.items():
+		for atable in ls_of_tables:
+			ls_of_tables[:] = [atable for atable in ls_of_tables if atable in ls_of_dest_tables]
+	for package, ls_of_tables in dc_of_pckg_source_tables.items():
+		if len(ls_of_tables) != 0: # overwriting the dictionary key
+			for atable in ls_of_tables:
+				pckg_to_populate_atable = dc_of_dest_table_pckg[atable]
+				if package != pckg_to_populate_atable:
+					dml = dml_part1+pckg_to_populate_atable+dml_part2+stage+dml_part3+package+dml_part4+stage+dml_part5
+					print(dml)
+    return dc_of_pckg_dependency
