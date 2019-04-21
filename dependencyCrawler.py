@@ -251,6 +251,7 @@ def get_dependency_dml(directory_location, stage):
 	dc_of_pckg_source_tables = {}
 	dc_of_dest_table_pckg = {}
 	pckg_to_populate_atable = ''
+	ls_final_dml = []
 	ls_of_pckg_names = read_all_package_names(directory_location)
 	dml_part1 = "INSERT [dbo].[PACKAGE_DEPENDENCY] ([PACKAGE_ID], [DEPENDENT_PACKAGE_ID]) VALUES ((SELECT PACKAGE_ID FROM PACKAGE WHERE NAME ='"
 	dml_part2 = "' AND STAGE='"
@@ -270,5 +271,5 @@ def get_dependency_dml(directory_location, stage):
 				pckg_to_populate_atable = dc_of_dest_table_pckg[atable]
 				if package != pckg_to_populate_atable:
 					dml = dml_part1+pckg_to_populate_atable+dml_part2+stage+dml_part3+package+dml_part4+stage+dml_part5
-					print(dml)
-    return dc_of_pckg_dependency
+					ls_final_dml.append(dml)
+    return ls_final_dml
